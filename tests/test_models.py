@@ -35,11 +35,14 @@ DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql://postgres:postgres@localhost:5432/postgres"
 )
 
+logger = logging.getLogger(__name__)
 
 ######################################################################
 #  P R O D U C T   M O D E L   T E S T   C A S E S
 ######################################################################
 # pylint: disable=too-many-public-methods
+
+
 class TestProductModel(unittest.TestCase):
     """Test Cases for Product Model"""
 
@@ -101,6 +104,105 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(new_product.available, product.available)
         self.assertEqual(new_product.category, product.category)
 
-    #
-    # ADD YOUR TEST CASES HERE
-    #
+    def test_read_a_product(self):
+        """It should read a product from the database"""
+        product = ProductFactory()
+        logger.debug(product)
+
+        product.id = None
+        product.create()
+        self.assertIsNotNone(product.id)
+
+        retrieved_product = Product.find(product.id)
+
+        self.assertEqual(retrieved_product.id, product.id)
+        self.assertEqual(retrieved_product.name, product.name)
+        self.assertEqual(retrieved_product.description, product.description)
+        self.assertEqual(retrieved_product.price, product.price)
+
+    def test_update_a_product(self):
+        """It should update a product in the database"""
+        product = ProductFactory()
+        logger.debug(product)
+
+        product.id = None
+        product.create()
+
+        product.description = "updated description"
+        product.update()
+        self.assertIsNotNone(product.id)
+        self.assertEqual(product.description, "updated description")
+
+        products = Product.all()
+        self.assertEqual(len(products), 1)
+
+        retrieved = products[0]
+        self.assertEqual(retrieved.id, product.id)
+        self.assertEqual(retrieved.description, "updated description")
+
+    def test_delete_a_product(self):
+        """It should delete a product from the database"""
+        product = ProductFactory()
+        product.create()
+
+        self.assertEqual(len(Product.all()), 1)
+
+        product.delete()
+        self.assertEqual(len(Product.all()), 0)
+
+    def test_list_all_products(self):
+        """It should list all products in the database"""
+        products = Product.all()
+        self.assertEqual(len(products), 0)
+
+        for _ in range(5):
+            product = ProductFactory()
+            product.create()
+
+        products = Product.all()
+        self.assertEqual(len(products), 5)
+
+    def test_find_by_name(self):
+        """It should find a product by name"""
+        products = ProductFactory.create_batch(5)
+        for product in products:
+            product.create()
+
+        name = products[0].name
+        count = len([product for product in products if product.name == name])
+
+        retrieved = Product.find_by_name(name)
+        self.assertEqual(retrieved.count(), count)
+
+        for product in retrieved:
+            self.assertEqual(product.name, name)
+
+    def test_find_by_availability(self):
+        """It should find a product by avaiability"""
+        products = ProductFactory.create_batch(10)
+        for product in products:
+            product.create()
+
+        available = products[0].available
+        count = len([product for product in products if product.available == available])
+
+        retrieved = Product.find_by_availability(available)
+        self.assertEqual(retrieved.count(), count)
+
+        for product in retrieved:
+            self.assertEqual(product.available, available)
+
+    def test_find_by_category(self):
+        """It should find a product by category"""
+        products = ProductFactory.create_batch(10)
+        for product in products:
+            product.create()
+
+        category = products[0].category
+        count = len([product for product in products if product.category == category])
+
+        retrieved = Product.find_by_category(category)
+        self.assertEqual(retrieved.count(), count)
+
+        for product in retrieved:
+            self.assertEqual(product.category, category)
